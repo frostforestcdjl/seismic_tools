@@ -175,6 +175,40 @@ for net in inv:
 
 The script reports the number of unique networks, stations, and station-channel combinations.
 
+### 3. Compare MiniSEED and StationXML Stations
+
+**Script:** `compare_mseed_inventory.py`
+
+This script compares unique stations between a MiniSEED waveform file and a StationXML inventory.
+
+It identifies:
+
+- Stations present in both files.
+- Stations present only in the MiniSEED file.
+- Stations present only in the inventory file.
+
+#### Usage
+
+```bash
+python compare_mseed_inventory.py waveforms.mseed inventory.xml
+```
+
+#### Example Output
+
+```text
+Station Comparison Summary
+============================================================
+MiniSEED stations:       6
+Inventory stations:      6
+Common stations:         4
+MiniSEED only:           2
+Inventory only:          2
+```
+
+Stations are uniquely identified using their network and station codes (`NET.STA`).
+
+The comparison does not currently account for location codes, channel codes, or station metadata epochs.
+
 ## Channel Naming Convention
 
 Seismic channel codes generally follow the SEED naming convention.
