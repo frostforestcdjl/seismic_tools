@@ -1,18 +1,19 @@
-# MiniSEED Station and Channel List
+# Seismic Station and Channel Scanner
 
-A lightweight Python utility to list unique seismic stations and their associated channels from a MiniSEED (`.mseed`) waveform file using [ObsPy](https://docs.obspy.org/).
+A collection of lightweight Python utilities for inspecting seismic waveform and station inventory files using [ObsPy](https://docs.obspy.org/).
 
-The script reads only waveform metadata, making it efficient for inspecting large MiniSEED files without loading waveform samples into memory.
+The repository provides tools to extract unique seismic stations and their associated channels from MiniSEED waveform files and StationXML inventory files.
 
 ## Features
 
-- Extract unique seismic stations from MiniSEED files.
+- Extract unique stations from MiniSEED waveform files.
+- Extract unique stations from StationXML inventory files.
 - List available channels for each station.
 - Group stations by network and station code.
-- Remove duplicate channel entries.
-- Report the total number of traces and unique stations.
+- Remove duplicate station and channel entries.
+- Report the total number of traces, networks, and unique stations.
 - Support command-line execution.
-- Efficient metadata-only reading using ObsPy.
+- Efficient metadata-only reading for MiniSEED files.
 
 ## Requirements
 
@@ -33,27 +34,45 @@ Alternatively, install it using Conda:
 conda install -c conda-forge obspy
 ```
 
-## Usage
+## Repository Structure
 
-Run the script from the command line:
-
-```bash
-python list_mseed_stations.py <waveform_file>
+```text
+seismic-station-scanner/
+├── README.md
+├── scan_mseed_st_ch.py
+├── scan_inventory.py
+└── requirements.txt
 ```
 
-### Example
+## Usage
+
+### 1. Scan MiniSEED Waveform Files
+
+**Script:** `scan_mseed_st_ch.py`
+
+This script extracts unique stations and their associated channels from a MiniSEED waveform file.
+
+The script reads only waveform metadata using `headonly=True`, avoiding unnecessary loading of waveform samples.
+
+#### Command
 
 ```bash
-python list_mseed_stations.py waveforms.mseed
+python scan_mseed_st_ch.py <waveform_file>
+```
+
+#### Example
+
+```bash
+python scan_mseed_st_ch.py waveforms.mseed
 ```
 
 You can also specify an absolute path:
 
 ```bash
-python list_mseed_stations.py /path/to/waveforms.mseed
+python scan_mseed_st_ch.py /path/to/waveforms.mseed
 ```
 
-### Example Output
+#### Example Output
 
 ```text
 BK.BKS: HHE, HHN, HHZ
@@ -69,21 +88,15 @@ Total unique stations: 6
 
 *Note: The output above is illustrative.*
 
-## How It Works
+#### How It Works
 
-### 1. Read MiniSEED Metadata
-
-The script uses ObsPy to read waveform metadata:
+The script reads waveform metadata:
 
 ```python
 st = read(args.waveform_file, headonly=True)
 ```
 
-Setting `headonly=True` avoids loading waveform sample data, reducing memory usage when processing large files.
-
-### 2. Group Channels by Station
-
-Stations are identified using their network and station codes:
+Stations are identified by their network and station codes:
 
 ```python
 station_channels = defaultdict(set)
@@ -93,21 +106,75 @@ for tr in st:
     station_channels[key].add(tr.stats.channel)
 ```
 
-A Python `set` ensures that duplicate channels are counted only once per station.
+Using a Python `set` ensures that duplicate channels are removed.
 
-### 3. Print Results
+### 2. Scan StationXML Inventory Files
 
-Stations and channels are sorted alphabetically:
+**Script:** `scan_inventory.py`
 
-```python
-for (network, station), channels in sorted(station_channels.items()):
-    print(f"{network}.{station}: {', '.join(sorted(channels))}")
+This script extracts unique stations and their associated channels from a StationXML inventory file.
+
+It uses ObsPy's `read_inventory()` function to access station metadata.
+
+#### Command
+
+```bash
+python scan_inventory.py <inventory_file>
 ```
 
-The script also reports:
+#### Example
 
-- **Total traces:** Number of waveform traces returned by ObsPy.
-- **Total unique stations:** Number of distinct network-station combinations.
+```bash
+python scan_inventory.py inventory.xml
+```
+
+You can also specify an absolute path:
+
+```bash
+python scan_inventory.py /path/to/inventory.xml
+```
+
+#### Example Output
+
+```text
+BK.BKS: HHE, HHN, HHZ
+BK.BRK: HHE, HHN, HHZ
+NC.GDX: HHE, HHN, HHZ
+NC.KMPB: HHE, HHN, HHZ
+NC.MNRC: BHE, BHN, BHZ
+NC.WDC: HNE, HNN, HNZ
+
+Total networks: 2
+Total unique stations: 6
+Total unique station-channel combinations: 18
+```
+
+*Note: The output above is illustrative.*
+
+#### How It Works
+
+The script reads the inventory:
+
+```python
+inv = read_inventory(args.inventory_file)
+```
+
+Stations and channels are grouped by network and station:
+
+```python
+station_channels = defaultdict(set)
+
+for net in inv:
+    for sta in net:
+        key = (net.code, sta.code)
+
+        station_channels[key]
+
+        for cha in sta:
+            station_channels[key].add(cha.code)
+```
+
+The script reports the number of unique networks, stations, and station-channel combinations.
 
 ## Channel Naming Convention
 
@@ -125,26 +192,40 @@ Seismic channel codes generally follow the SEED naming convention.
 | HNN | High-sample-rate accelerometer, north component |
 | HNE | High-sample-rate accelerometer, east component |
 
-The script lists channel codes exactly as stored in the MiniSEED file.
+The scripts list channel codes exactly as stored in the input files.
 
 ## Notes
+
+### MiniSEED Scanner
 
 - Stations are uniquely identified by `(network, station)`.
 - Different channels belonging to the same station are grouped together.
 - Duplicate channel codes are removed automatically.
 - Location codes are not considered when grouping channels.
-- The script does not evaluate waveform quality, instrument response, or data completeness.
-- The reported trace count may differ from the number of physical waveform records or continuous waveform segments.
+- The script does not evaluate waveform quality or data completeness.
+- The total number of traces may differ from the number of unique channels.
+
+### Inventory Scanner
+
+- Supports FDSN StationXML inventory files.
+- Stations are uniquely identified by `(network, station)`.
+- Stations without channels are included in the station count.
+- Duplicate station and channel entries are removed.
+- Different station epochs with the same network and station codes are counted as one unique station.
+- Location codes are not considered when grouping channels.
+- SeisComP SC3ML files are not directly supported by ObsPy's `read_inventory()`.
 
 ## Applications
 
-This utility can be used for:
+These utilities can be used for:
 
 - Inspecting seismic waveform archives.
-- Verifying station availability before waveform processing.
+- Examining station inventory files.
+- Verifying station and channel availability.
 - Identifying broadband and strong-motion channels.
 - Checking station coverage for ShakeMap processing.
 - Preparing station inventories for seismic data analysis.
+- Supporting seismic waveform processing workflows.
 
 ## License
 
