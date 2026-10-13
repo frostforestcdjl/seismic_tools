@@ -40,8 +40,7 @@ conda install -c conda-forge obspy
 seismic-station-scanner/
 ├── README.md
 ├── scan_mseed_st_ch.py
-├── scan_inventory.py
-└── requirements.txt
+└── scan_inventory.py
 ```
 
 ## Usage
