@@ -1,0 +1,15 @@
+# Runtime configuration
+scwfparam_realtime_runtime.cfg
+
+# Runtime logs
+logs/
+
+# Event locks
+locks/
+
+# Generated ShakeMap XML
+scwfparam_output/
+
+# Python cache
+__pycache__/
+*.pyc
